@@ -1,0 +1,89 @@
+provider "azurerm" {
+  features {}
+}
+
+
+resource "azurerm_virtual_network" "vnet" {
+  name                = "my-vnet"
+  address_space       = ["10.0.0.0/16"]
+  location            = "eastus"
+  resource_group_name = "my-resource-group"
+}
+
+resource "azurerm_subnet" "subnet" {
+  name                 = "my-subnet"
+  resource_group_name  = "my-resource-group"
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.1.0/24"]
+}
+
+
+resource "azurerm_network_interface" "nic" {
+  name                = "my-nic"
+  location            = "eastus"
+  resource_group_name = "my-resource-group"
+
+  ip_configuration {
+    name                          = "my-nic-ipconfig"
+    subnet_id                     = azurerm_subnet.subnet.id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+
+resource "azurerm_windows_virtual_machine" "vm" {
+  name                  = "my-windows-vm"
+  location              = "eastus"
+  resource_group_name   = "my-resource-group"
+  network_interface_ids = [azurerm_network_interface.nic.id]
+
+  size                 = "Standard_DS1_v2"
+  admin_username       = "adminuser"
+  admin_password       = "Password1234!"
+  source_image_reference {
+    publisher = "MicrosoftWindowsServer"
+    offer     = "WindowsServer"
+    sku       = "2019-Datacenter"
+    version   = "latest"
+  }
+
+  os_disk {
+    name              = "my-windows-osdisk"
+    caching           = "ReadWrite"
+    create_option     = "FromImage"
+    managed_disk_type = "Premium_LRS"
+  }
+}
+
+=================================Azure LB==================================
+resource "azurerm_lb" "lb" {
+  name                = "my-lb"
+  location            = "eastus"
+  resource_group_name = "my-resource-group"
+  sku                 = "Basic"
+
+  frontend_ip_configuration {
+    name                          = "PublicIPAddress"
+    public_ip_address_id          = azurerm_public_ip.publicip.id
+    private_ip_address_allocation = "Dynamic"
+  }
+
+  backend_address_pool {
+    name = "my-backend-pool"
+  }
+
+  probe {
+    name   = "http-probe"
+    port  
+
+
+==================Vnet Peering======================resource "azurerm_virtual_network_peering" "vnet-peering" {
+  name                         = "my-vnet-peering"
+  resource_group_name          = "my-resource-group"
+  virtual_network_name         = azurerm_virtual_network.vnet.name
+  remote_virtual_network_id    = "/subscriptions/<subscription-id>/resourceGroups/<remote-resource-group>/providers/Microsoft.Network/virtualNetworks/<remote-vnet-name>"
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = false
+  use_remote_gateways          = false
+}
+
